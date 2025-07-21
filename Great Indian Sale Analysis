@@ -1,0 +1,130 @@
+# Import required Python libraries
+import numpy as np 
+import pandas as pd 
+import matplotlib.pyplot as plt 
+import seaborn as sns
+%matplotlib inline
+
+# Load the dataset
+df = pd.read_csv('Great Indian Sales Data.csv', encoding='unicode_escape')
+
+# Initial data inspection
+print(df.shape)
+print(df.head())
+print(df.info())
+
+# Data Cleaning
+df.drop(['Status', 'unnamed1'], axis=1, inplace=True)         # Drop unnecessary columns
+df.dropna(inplace=True)                                       # Drop null values
+df['Amount'] = df['Amount'].astype(int)                       # Convert Amount to integer
+df.rename(columns={'Marital_Status': 'Shaadi'}, inplace=True) # Rename column
+
+# Descriptive statistics
+print(df.describe())
+print(df[['Age', 'Orders', 'Amount']].describe())
+
+# Exploratory Data Analysis (EDA)
+
+## Gender Analysis
+plt.figure(figsize=(6, 4))
+ax = sns.countplot(x='Gender', data=df)
+ax.bar_label(ax.containers[0])
+plt.title('Count of Buyers by Gender')
+plt.show()
+
+sales_gender = df.groupby('Gender', as_index=False)['Amount'].sum().sort_values(by='Amount', ascending=False)
+plt.figure(figsize=(6, 4))
+sns.barplot(x='Gender', y='Amount', data=sales_gender)
+plt.title('Total Purchase Amount by Gender')
+plt.show()
+
+## Age Group Analysis
+plt.figure(figsize=(8, 4))
+ax = sns.countplot(x='Age Group', hue='Gender', data=df)
+ax.bar_label(ax.containers[0])
+ax.bar_label(ax.containers[1])
+plt.title('Buyer Distribution by Age Group and Gender')
+plt.show()
+
+sales_age = df.groupby('Age Group', as_index=False)['Amount'].sum().sort_values(by='Amount', ascending=False)
+plt.figure(figsize=(8, 4))
+sns.barplot(x='Age Group', y='Amount', data=sales_age)
+plt.title('Total Amount by Age Group')
+plt.show()
+
+## State Analysis - Orders
+sales_state_orders = df.groupby('State', as_index=False)['Orders'].sum().sort_values(by='Orders', ascending=False).head(10)
+plt.figure(figsize=(15, 5))
+sns.barplot(x='State', y='Orders', data=sales_state_orders)
+plt.title('Top 10 States by Number of Orders')
+plt.show()
+
+## State Analysis - Amount
+sales_state_amount = df.groupby('State', as_index=False)['Amount'].sum().sort_values(by='Amount', ascending=False).head(10)
+plt.figure(figsize=(15, 5))
+sns.barplot(x='State', y='Amount', data=sales_state_amount)
+plt.title('Top 10 States by Sales Amount')
+plt.show()
+
+## Marital Status Analysis
+plt.figure(figsize=(6, 4))
+ax = sns.countplot(x='Shaadi', data=df)
+ax.bar_label(ax.containers[0])
+plt.title('Buyer Count by Marital Status')
+plt.show()
+
+sales_marital = df.groupby(['Shaadi', 'Gender'], as_index=False)['Amount'].sum().sort_values(by='Amount', ascending=False)
+plt.figure(figsize=(6, 4))
+sns.barplot(x='Shaadi', y='Amount', hue='Gender', data=sales_marital)
+plt.title('Total Purchase Amount by Marital Status and Gender')
+plt.show()
+
+## Occupation Analysis
+plt.figure(figsize=(20, 5))
+ax = sns.countplot(x='Occupation', data=df)
+ax.bar_label(ax.containers[0])
+plt.title('Buyer Count by Occupation')
+plt.xticks(rotation=45)
+plt.show()
+
+sales_occupation = df.groupby('Occupation', as_index=False)['Amount'].sum().sort_values(by='Amount', ascending=False)
+plt.figure(figsize=(20, 5))
+sns.barplot(x='Occupation', y='Amount', data=sales_occupation)
+plt.title('Total Sales Amount by Occupation')
+plt.xticks(rotation=45)
+plt.show()
+
+## Product Category Analysis
+plt.figure(figsize=(20, 5))
+ax = sns.countplot(x='Product_Category', data=df)
+ax.bar_label(ax.containers[0])
+plt.title('Product Category Count')
+plt.xticks(rotation=45)
+plt.show()
+
+sales_category = df.groupby('Product_Category', as_index=False)['Amount'].sum().sort_values(by='Amount', ascending=False).head(10)
+plt.figure(figsize=(20, 5))
+sns.barplot(x='Product_Category', y='Amount', data=sales_category)
+plt.title('Top Product Categories by Sales Amount')
+plt.xticks(rotation=45)
+plt.show()
+
+## Top 10 Most Sold Products
+top_products = df.groupby('Product_ID', as_index=False)['Orders'].sum().sort_values(by='Orders', ascending=False).head(10)
+plt.figure(figsize=(20, 5))
+sns.barplot(x='Product_ID', y='Orders', data=top_products)
+plt.title('Top 10 Most Sold Products')
+plt.xticks(rotation=45)
+plt.show()
+
+# Alternate top products plot using matplotlib
+plt.figure(figsize=(12, 7))
+df.groupby('Product_ID')['Orders'].sum().nlargest(10).sort_values(ascending=False).plot(kind='bar')
+plt.title('Top 10 Products by Number of Orders')
+plt.xlabel('Product ID')
+plt.ylabel('Orders')
+plt.show()
+
+# Conclusion:
+# Married women aged 26–35 from Uttar Pradesh, Maharashtra, and Karnataka, working in IT, Healthcare, and Aviation,
+# are the top buyers, mostly purchasing Food, Clothing, and Electronics.
