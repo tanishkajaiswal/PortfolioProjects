@@ -1,0 +1,145 @@
+#1. Top 3 most-streamed tracks for each artist
+
+WITH ranked_tracks AS (
+    SELECT 
+        artist,
+        track,
+        streams,
+        ROW_NUMBER() OVER (PARTITION BY artist ORDER BY streams DESC) AS rn
+    FROM spotify
+)
+SELECT artist, track, streams
+FROM ranked_tracks
+WHERE rn <= 3
+ORDER BY artist, streams DESC;
+
+#2. Tracks with liveness above artist’s average
+
+WITH avg_liveness AS (
+    SELECT artist, AVG(liveness) AS avg_live
+    FROM spotify
+    GROUP BY artist
+)
+SELECT s.artist, s.track, s.liveness
+FROM spotify s
+JOIN avg_liveness a ON s.artist = a.artist
+WHERE s.liveness > a.avg_live;
+
+#3. Album with widest danceability range (max - min)
+
+
+WITH cte AS (
+    SELECT album,
+           MAX(danceability) AS max_dance,
+           MIN(danceability) AS min_dance
+    FROM spotify
+    GROUP BY album
+)
+SELECT album, (max_dance - min_dance) AS dance_range
+FROM cte
+ORDER BY dance_range DESC;
+
+#4. Most popular track per platform (Spotify vs YouTube) (using streams for Spotify, views for YouTube)
+
+
+
+WITH ranked AS (
+    SELECT 
+        platform,
+        track,
+        CASE 
+          WHEN platform = 'Spotify' THEN streams
+          WHEN platform = 'Youtube' THEN views
+        END AS popularity,
+        ROW_NUMBER() OVER (PARTITION BY platform ORDER BY 
+           CASE 
+              WHEN platform = 'Spotify' THEN streams
+              ELSE views
+           END DESC) AS rn
+    FROM spotify
+)
+SELECT platform, track, popularity
+FROM ranked
+WHERE rn = 1;
+
+#5. Find artists whose average tempo has increased from one album to the next
+
+
+WITH album_tempo AS (
+    SELECT artist, album, AVG(tempo) AS avg_tempo
+    FROM spotify
+    GROUP BY artist, album
+),
+ranked AS (
+    SELECT artist, album, avg_tempo,
+           LAG(avg_tempo) OVER (PARTITION BY artist ORDER BY album) AS prev_tempo
+    FROM album_tempo
+)
+SELECT artist, album, avg_tempo, prev_tempo
+FROM ranked
+WHERE avg_tempo > prev_tempo;
+
+#6. Top 5 tracks with best likes-to-views ratio
+
+
+SELECT track, artist, 
+       (likes * 1.0 / views) AS like_view_ratio
+FROM spotify
+WHERE views > 0
+ORDER BY like_view_ratio DESC
+LIMIT 5;
+
+
+#7. Find songs where streams are above the artist’s average
+
+
+WITH avg_streams AS (
+    SELECT artist, AVG(streams) AS avg_streams
+    FROM spotify
+    GROUP BY artist
+)
+SELECT s.artist, s.track, s.streams
+FROM spotify s
+JOIN avg_streams a ON s.artist = a.artist
+WHERE s.streams > a.avg_streams;
+
+#8. Rank albums by total comments per artist
+
+
+WITH album_comments AS (
+    SELECT artist, album, SUM(comments) AS total_comments
+    FROM spotify
+    GROUP BY artist, album
+)
+SELECT artist, album, total_comments,
+       RANK() OVER (PARTITION BY artist ORDER BY total_comments DESC) AS rank_within_artist
+FROM album_comments;
+
+
+#9. Find the longest track per artist
+
+WITH ranked AS (
+    SELECT artist, track, duration_ms,
+           ROW_NUMBER() OVER (PARTITION BY artist ORDER BY duration_ms DESC) AS rn
+    FROM spotify
+)
+SELECT artist, track, duration_ms
+FROM ranked
+WHERE rn = 1;
+
+#10. Identify outlier songs (streams > 2 * stddev + avg for artist)
+
+
+WITH stats AS (
+    SELECT artist,
+           AVG(streams) AS avg_streams,
+           STDDEV(streams) AS std_streams
+    FROM spotify
+    GROUP BY artist
+)
+SELECT s.artist, s.track, s.streams
+FROM spotify s
+JOIN stats t ON s.artist = t.artist
+WHERE s.streams > (t.avg_streams + 2 * t.std_streams);
+
+
